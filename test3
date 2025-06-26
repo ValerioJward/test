@@ -1,0 +1,28 @@
+paths:
+  /fetch-url:
+    get:
+      tags:
+        - test
+      summary: Recupera contenuto da un URL (⚠️ potenziale SSRF)
+      description: >
+        Endpoint di test che recupera una risorsa remota.  
+        ⚠️ Questa implementazione può essere vulnerabile a SSRF se non protetta.
+      operationId: fetchUrl
+      parameters:
+        - in: query
+          name: url
+          required: true
+          type: string
+          example: "https://webhook.site/f4f7a1b9-0732-4cd0-b08b-0a8a4ee98e8b"
+      responses:
+        '200':
+          description: Contenuto dell'URL richiesto
+          schema:
+            type: object
+            properties:
+              url:
+                type: string
+              content:
+                type: string
+        '400':
+          description: URL non valido
