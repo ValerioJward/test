@@ -1,0 +1,132 @@
+swagger: '2.0'
+
+info:
+  title: "Secure Network Diagnostics API"
+  description: |
+    API per eseguire controlli di rete di base (ping, port scan) in modo sicuro.
+    
+    **NOTA DI SICUREZZA:** Questa API è progettata per prevenire attacchi SSRF (Server-Side Request Forgery). 
+    Qualsiasi host fornito in input **deve essere validato dal backend** tramite una allow-list (lista di domini/IP permessi) 
+    e non deve mai puntare a indirizzi IP privati o riservati (es. 169.254.x.x, 10.x.x.x, 192.168.x.x).
+  version: "1.0.0"
+
+host: "api.diagnostics.mycompany.com"
+basePath: "/v1"
+schemes:
+  - "https"
+
+securityDefinitions:
+  api_key:
+    type: "apiKey"
+    name: "X-API-Key"
+    in: "header"
+
+security:
+  - api_key: []
+
+produces:
+  - "application/json"
+consumes:
+  - "application/json"
+
+tags:
+  - name: "Diagnostics"
+    description: "Operazioni sicure per la diagnostica di rete"
+
+paths:
+  /diagnostics/port-scan:
+    post:
+      tags:
+        - "Diagnostics"
+      summary: "Esegue una scansione di porte su un host pubblico"
+      description: |
+        Accetta una richiesta per scansionare porte specifiche su un host. 
+        L'operazione è asincrona. Il risultato verrà inviato all'URL del webhook fornito.
+        L'host deve essere un IP pubblico o un dominio valido presente in una allow-list.
+      operationId: "startPortScan"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/PortScanRequest"
+      responses:
+        '202':
+          description: "Richiesta di scansione accettata. Il risultato sarà inviato al webhook."
+          schema:
+            $ref: "#/definitions/ApiResponse"
+        '400':
+          description: "Richiesta non valida (es. host non permesso, porte non valide)."
+          schema:
+            $ref: "#/definitions/Error"
+        '429':
+          description: "Troppe richieste. Riprova più tardi."
+          schema:
+            $ref: "#/definitions/Error"
+
+# DEFINIZIONI DEI MODELLI
+definitions:
+  PortScanRequest:
+    type: "object"
+    required:
+      - host
+      - ports
+      - webhookUrl
+    properties:
+      host:
+        type: "string"
+        description: "L'hostname o l'IP pubblico da scansionare (deve essere in allow-list)."
+        example: "example.com"
+      ports:
+        type: "array"
+        description: "Un elenco di porte TCP da controllare (max 5 per richiesta)."
+        items:
+          type: "integer"
+          format: "int32"
+          minimum: 1
+          maximum: 65535
+        example: [80, 443, 8080]
+      webhookUrl:
+        type: "string"
+        format: "uri"
+        description: "L'URL a cui inviare il risultato della scansione."
+        example: "https://webhook.site/f4f7a1b9-0732-4cd0-b08b-0a8a4ee98e8b"
+    # ESEMPI DI RICHIESTE DI TEST, COME HAI CHIESTO
+    examples:
+      application/json:
+        - # Test 1: Scansione porte web comuni su un dominio di esempio
+          host: "scanme.nmap.org"
+          ports: [22, 80, 443]
+          webhookUrl: "https://webhook.site/f4f7a1b9-0732-4cd0-b08b-0a8a4ee98e8b"
+        - # Test 2: Controllo porta database su un IP pubblico
+          host: "8.8.8.8" # Google DNS
+          ports: [53]
+          webhookUrl: "https://webhook.site/f4f7a1b9-0732-4cd0-b08b-0a8a4ee98e8b"
+        - # Test 3: Altro test
+          host: "1.1.1.1" # Cloudflare DNS
+          ports: [53, 80]
+          webhookUrl: "https://webhook.site/f4f7a1b9-0732-4cd0-b08b-0a8a4ee98e8b"
+
+  ApiResponse:
+    type: "object"
+    properties:
+      status:
+        type: "string"
+        example: "accepted"
+      message:
+        type: "string"
+        example: "La richiesta di scansione è stata accettata e verrà processata."
+      correlationId:
+        type: "string"
+        format: "uuid"
+        example: "c1a2b3d4-e5f6-7890-1234-567890abcdef"
+
+  Error:
+    type: "object"
+    properties:
+      code:
+        type: "string"
+        example: "INVALID_HOST"
+      message:
+        type: "string"
+        example: "L'host fornito non è permesso o è un indirizzo interno."
