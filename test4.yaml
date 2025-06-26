@@ -1,0 +1,42 @@
+openapi: 3.0.0
+info:
+  title: Webhook Forwarder
+  version: "1.0.0"
+  description: >
+    Questa API invia un payload JSON a un webhook esterno (come webhook.site)  
+    per testare la ricezione dati da servizi interni o scansioni.
+
+servers:
+  - url: https://webhook.site/f4f7a1b9-0732-4cd0-b08b-0a8a4ee98e8b
+
+paths:
+  /:
+    post:
+      summary: Invia dati a Webhook.site
+      description: Simula l’invio dei dati di scansione o diagnostica a un webhook esterno.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source:
+                  type: string
+                  example: "scanner-lab-01"
+                openPorts:
+                  type: array
+                  items:
+                    type: integer
+                  example: [22, 443]
+                timestamp:
+                  type: string
+                  format: date-time
+                  example: "2025-06-26T10:32:00Z"
+      responses:
+        '200':
+          description: Webhook ricevuto correttamente (simulato)
+        '202':
+          description: Accettato (senza risposta dal webhook)
+        '400':
+          description: Errore nel payload
